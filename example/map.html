@@ -1,0 +1,89 @@
+<script src="../tinytest.js"></script>
+<script>
+
+// Example 1:
+// map([1,2,3], function() {});
+
+// Example 2:
+// map([1,2,3], function(number) {
+//   console.log(number);
+// });
+
+function map(originalArray, callback, optionalThisObject){
+  var mapCallback = callback;
+
+  if(optionalThisObject) {
+    mapCallback = callback.bind(optionalThisObject);
+  }
+
+  var mappedArray = [];
+
+  for (var i = 0; i < originalArray.length; i++) {
+    if (i in originalArray) {
+      var mappedItem = mapCallback(originalArray[i], i, originalArray)
+      mappedArray[i] = mappedItem;
+    }
+  }
+
+  return mappedArray;
+
+}
+
+tests({
+  'It should run the callback array.length times': function() {
+    var numberOfTimesCallbackHasRun = 0;
+    map([1,2,3], function() {
+      numberOfTimesCallbackHasRun++;
+    });
+
+
+    eq(numberOfTimesCallbackHasRun, 3);
+  }
+  ,'It should pass in the ith element as the first argument to the callback': function() {
+    map([1], function(number) {
+      eq(number, 1);
+    })
+  },
+  'It should pass in the ith position as the second argument to the callback': function() {
+    map([1], function(number, index) {
+      eq(index, 0);
+    })
+  },
+  'It should pass in the original array as the third argument to the callback': function() {
+    var testArray = [1,2,3];
+    map(testArray, function(number, index, originalArray) {
+      eq(originalArray, testArray);
+    })
+  },
+  'It should accept an optional this object': function() {
+    map([1], function() {
+      eq(this.description, 'I should be accessible inside of the callback.')
+    },  { description: 'I should be accessible inside of the callback.' });
+  },
+  'It should return an array.' : function() {
+    var mappedArray = map([], function() {});
+    eq(Array.isArray(mappedArray), true);
+  },
+  'It should return a new array, not the array being mapped.': function () {
+    var arrayBeingmapped = [];
+    var mappedArray = map(arrayBeingmapped, function() {});
+    eq(mappedArray!== arrayBeingmapped, true);
+  },
+  'It should skip unassigned indexes.': function () {
+    var weirdArray = [,2];
+    var mappedArray = map(weirdArray, function multiplyBy4(number) {
+      return number * 4;
+    });
+    eq(mappedArray[0], undefined)
+    eq(mappedArray[1], 8)
+  },
+  'It should return a new array with callback called on each element': function () {
+    var testArray = [1,2, undefined]
+    var mappedArray = map(testArray, function multiplyBy4(number) {
+      return number * 4;
+    });
+    eq(mappedArray[0], testArray[0] * 4)
+    eq(mappedArray[1], testArray[1] * 4)
+  }
+});
+</script>

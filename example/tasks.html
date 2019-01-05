@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>todos prototype</title>
+    <script src="../tinytest.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    crossorigin="anonymous"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div class='container'>
+      <input id='add-todo' placeholder='add a todo'></input>
+      <button onclick='app.addTodo()'>add todo</button>
+    <div>
+    <div>
+      <h1>Todos List</h1>
+      <button>Toggle All</button>
+      <ul id='todo-container'>
+        <li>todos will append below</li>
+      </ul
+    </div>
+
+  </body>
+</html>
+
+
+<script>
+
+//TODO:
+// [ ] template
+// [x] utilize local storage
+  // [x] initialize with local storage
+// [ ] add tags to todos
+// [ ] make todos editable
+// [ ] toggle only when clicking (x)
+// [ ] nest new todos
+// [ ] bind events by propagation/bind
+// [x] create sub-todo
+  // [ ] handle toggle on sub-todos
+
+var util = {
+  uuid: function() {
+      return crypto.getRandomValues(new Uint32Array(4)).join('-');
+  }
+}
+
+var app = {
+  init: function() {
+    console.log('testing');
+    console.log('jsonParse', JSON.parse(localStorage.getItem('localTodos')))
+    this.todos = JSON.parse(localStorage.getItem('localTodos'))
+    this.render();
+  },
+  todos:[],
+  render: function() {
+    var todoContainer = document.querySelector('#todo-container');
+    todoContainer.innerHTML = '';
+    for (i = 0; i < this.todos.length; i++) {
+      //check if completed before rendering
+      var todo = this.todos[i];
+      var todoNode = this.generateTodoNode(todo);
+      todoContainer.appendChild(todoNode);
+      // console.log('i todocontainer', i, document.querySelector('#todo-container').getElementsByTagName('li')[i])
+      var appendedTodoNode = document.querySelector('#todo-container').getElementsByTagName('li')
+
+      //if there's a subTodo then append subTodo
+      if (todo.subTodo) {
+        var subTodo = this.generateTodoNode(todo.subTodo[0]);
+        var subUl = document.createElement('ul');
+        subUl.appendChild(subTodo);
+        appendedTodoNode[appendedTodoNode.length-1].appendChild(subUl);
+      }
+
+      localStorage.setItem('localTodos', JSON.stringify(this.todos));
+      // console.log('mylocalStorage', localTodos);
+      var myLocalStorage = localStorage.getItem('localTodos')
+    }
+  },
+  generateTodoNode: function(todo) {
+    var todoComplete = todo.completed
+    var text;
+    if (todoComplete) {
+      xBoxValue = '(x) ';
+    } else {
+      xBoxValue = '( ) ';
+    }
+    var todoNode = document.createElement('li');
+    var xBox = document.createElement('span')
+    xBox.innerHTML = xBoxValue
+    var text = document.createTextNode(todo.text);
+    var textSpan = document.createElement('span');
+    textSpan.classList.add('editable');
+    textSpan.appendChild(text);
+    textSpan.contentEditable = true;
+    var saveButton = document.createElement('button');
+    saveButton.innerHTML = 'Save';
+    var subTodoButton = document.createElement('button');
+    subTodoButton.innerHTML = 'Add subTodo';
+    xBox.addEventListener('click', this.toggle.bind(this))
+    saveButton.addEventListener('click', this.saveContent.bind(this));
+    subTodoButton.addEventListener('click', this.createSubTodo.bind(this));
+    todoNode.appendChild(xBox);
+    todoNode.appendChild(textSpan);
+    todoNode.appendChild(saveButton);
+    todoNode.appendChild(subTodoButton);
+    todoNode.setAttribute('id', todo.id);
+    return todoNode;
+  },
+  addTodo: function() {
+    var text = document.querySelector('#add-todo').value.trim();
+    //create todo object only if input is not empty
+    if (text !== '') {
+      var todoObject = {};
+      todoObject.text = text;
+      todoObject.id = util.uuid();
+      todoObject.completed = false;
+      this.todos.push(todoObject);
+      document.querySelector('#add-todo').value = '';
+      this.render();
+    }
+  },
+  findIndex: function(e) {
+    var todoId = e.target.closest('li').getAttribute('id');
+    var todoIndex = this.todos.findIndex(function(todo) {
+      return todo.id === todoId;
+    });
+    return todoIndex;
+  },
+  deleteTodo: function(e) {
+    todoIndex = this.findIndex(e)
+    this.todos.splice(todoIndex,1);
+    this.render();
+  },
+  toggle: function(e) {
+    console.log('e.target', e.target)
+    todoIndex = this.findIndex(e)
+    console.log('todoIndex', todoIndex);
+    var todoComplete = this.todos[todoIndex];
+    todoComplete.completed = !todoComplete.completed;
+    this.render();
+  },
+  saveContent: function(e) {
+    todoIndex = this.findIndex(e)
+    var todoText = e.target.previousSibling.innerHTML;
+    this.todos[todoIndex].text = todoText;
+    this.render();
+  },
+  //create a new array of subtodos within current todo
+  createSubTodo: function(e) {
+    todoIndex = this.findIndex(e)
+    this.todos[todoIndex].subTodo = [
+      {
+        text: 'abcd',
+        id: util.uuid(),
+        completed: false
+      }
+    ]
+    this.render();
+    console.log(this.todos);
+  }
+}
+
+app.init();
+
+</script>
